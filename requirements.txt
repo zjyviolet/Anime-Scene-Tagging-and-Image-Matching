@@ -1,0 +1,5 @@
+streamlit
+wdtagger       # WD14 Tagger 的 Python 包
+torch>=1.13    # CPU/GPU 通用
+Pillow         # 处理图片
+timm
