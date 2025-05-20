@@ -1,0 +1,3 @@
+[server]
+# 彻底关闭文件监视，避免扫描 torch 内部模块时出错
+enableWatchdog = false
