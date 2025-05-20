@@ -1,31 +1,59 @@
 # wd14.py
-
 from wdtagger import Tagger as WDTagger
 from PIL import Image
 
+# 你关心的风景关键词集合
+SCENIC_KEYWORDS = {
+    "sky", "sea", "forest", "mountain", "city", "night", "sunset",
+    "trees", "water", "street", "river", "building",
+    "beach", "clouds", "sun", "lake"
+}
+
 class Tagger:
-    def __init__(self, tags_csv: str = "my_selected_tags.csv"):
+    def __init__(self, model_name: str = None):
         """
-        初始化 WD14 Tagger，只加载指定的标签子集以减少内存占用。
-        
-        :param tags_csv: 一行一个标签的 CSV 文件路径，只加载这里列出的标签。
+        初始化 WD14 Tagger。
+        如果提供了 model_name，则会尝试加载指定模型，否则加载默认模型。
         """
-        # selected_tags 参数指定只读取这份 CSV 中的标签
-        self.model = WDTagger(selected_tags=tags_csv)
+        if model_name:
+            # 一般 wdtagger 支持传入 model 参数来选择不同预训练模型
+            self.model = WDTagger(model=model_name)
+        else:
+            self.model = WDTagger()
 
-    def get_tags(self, img_path: str, top_k: int = 20, min_conf: float = 0.1) -> list[str]:
+    def get_tags(
+        self,
+        img_path: str,
+        top_k: int = 16,
+        min_conf: float = 0.1
+    ) -> list[str]:
         """
-        从图片中提取标签。
+        从本地图片中提取风景标签。
 
-        :param img_path: 图片文件的本地路径
-        :param top_k: 最多返回多少个标签
-        :param min_conf: 最低置信度阈值（映射到模型的 general_threshold）
-        :return: 检测到的标签列表
+        Args:
+            img_path: 图片文件路径
+            top_k: 最多返回几个风景标签
+            min_conf: 置信度阈值，只有置信度 >= min_conf 的标签才会被考虑
+
+        Returns:
+            List[str]: 筛选后的风景关键词列表，长度最多为 top_k
         """
-        # 载入并转换图片
+        # 打开并转成 RGB
         img = Image.open(img_path).convert("RGB")
-        # 调用模型打标签，只会计算 tags_csv 中的那部分标签
-        result = self.model.tag(img, general_threshold=min_conf)
-        # result.general_tag_data 是一个有序字典 {标签: 置信度}
-        tags = list(result.general_tag_data.keys())
-        return tags[:top_k]
+
+        # 只要一般标签，字符标签阈值设为 1.0 跳过所有人物类标签
+        result = self.model.tag(
+            img,
+            general_threshold=min_conf,
+            character_threshold=1.0
+        )
+
+        # result.general_tag_data: OrderedDict{标签: 置信度}
+        # 筛选出风景相关关键词
+        scenic_tags = [
+            tag for tag in result.general_tag_data.keys()
+            if tag in SCENIC_KEYWORDS
+        ]
+
+        # 返回最多 top_k 个
+        return scenic_tags[:top_k]
