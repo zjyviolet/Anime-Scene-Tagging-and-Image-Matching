@@ -78,9 +78,10 @@ if uploaded_file:
         except Exception as e:
             st.error(f"Failed to open image '{selected}': {e}")
 
-        # 4. Show which tags matched
-        common_tags = set(tags) & set(index[selected])
-        if common_tags:
-            st.write(f"Matched on tag(s): **{', '.join(common_tags)}**")
+        # 4. Show which tags matched (preserve order & show all)
+    common_tags = [t for t in tags if t in index[selected]]
+    if common_tags:
+        st.write(f"Matched on tag(s): **{', '.join(common_tags)}**")
+
     else:
         st.info("⚠️ No matching images found. Please check your CSV or try different tags.")
