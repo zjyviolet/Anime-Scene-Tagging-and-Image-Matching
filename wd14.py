@@ -24,7 +24,7 @@ class Tagger:
         with open(img_path, "rb") as f:
             img_bytes = f.read()
         # 结果是 [{"label":"sky","score":0.9}, ...]
-        output = self.client(inputs=img_bytes)
+        output = self.client(img_bytes)
         scenic = [
             o["label"]
             for o in output

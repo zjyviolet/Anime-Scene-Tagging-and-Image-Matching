@@ -9,7 +9,7 @@ from wd14 import Tagger
 # Page configuration
 st.set_page_config(page_title="Anime → Scenic Tagging & Matching", layout="centered")
 
-st.title("🎨 Anime Scene Tagging and Image Matching")
+st.title("Anime Scene Tagging and Image Matching")
 
 # Instantiate the tag extractor
 tagger = Tagger()
