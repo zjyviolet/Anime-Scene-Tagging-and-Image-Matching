@@ -1,59 +1,31 @@
 # wd14.py
-from wdtagger import Tagger as WDTagger
+from huggingface_hub import InferenceApi
 from PIL import Image
+import io
 
-# 你关心的风景关键词集合
+# 只保留你关心的风景词
 SCENIC_KEYWORDS = {
-    "sky", "sea", "forest", "mountain", "city", "night", "sunset",
-    "trees", "water", "street", "river", "building",
-    "beach", "clouds", "sun", "lake"
+    "sky","sea","forest","mountain","city","night","sunset",
+    "trees","water","street","river","building","beach","clouds","sun","lake"
 }
 
 class Tagger:
-    def __init__(self, model_name: str = None):
-        """
-        初始化 WD14 Tagger。
-        如果提供了 model_name，则会尝试加载指定模型，否则加载默认模型。
-        """
-        if model_name:
-            # 一般 wdtagger 支持传入 model 参数来选择不同预训练模型
-            self.model = WDTagger(model=model_name)
-        else:
-            self.model = WDTagger()
-
-    def get_tags(
-        self,
-        img_path: str,
-        top_k: int = 16,
-        min_conf: float = 0.1
-    ) -> list[str]:
-        """
-        从本地图片中提取风景标签。
-
-        Args:
-            img_path: 图片文件路径
-            top_k: 最多返回几个风景标签
-            min_conf: 置信度阈值，只有置信度 >= min_conf 的标签才会被考虑
-
-        Returns:
-            List[str]: 筛选后的风景关键词列表，长度最多为 top_k
-        """
-        # 打开并转成 RGB
-        img = Image.open(img_path).convert("RGB")
-
-        # 只要一般标签，字符标签阈值设为 1.0 跳过所有人物类标签
-        result = self.model.tag(
-            img,
-            general_threshold=min_conf,
-            character_threshold=1.0
+    def __init__(self):
+        # 指定模型 repo ID
+        self.client = InferenceApi(
+            repo_id="SmilingWolf/wd14-tagger",
+            token=st.secrets["HFG_TOKEN"],
         )
 
-        # result.general_tag_data: OrderedDict{标签: 置信度}
-        # 筛选出风景相关关键词
-        scenic_tags = [
-            tag for tag in result.general_tag_data.keys()
-            if tag in SCENIC_KEYWORDS
+    def get_tags(self, img_path, top_k=16, min_conf=0.1):
+        # 读取成二进制
+        with open(img_path, "rb") as f:
+            img_bytes = f.read()
+        # 调用 HF API
+        output = self.client(inputs=img_bytes)
+        # output 是列表 e.g. [{"tag":"sky","score":0.98}, ...]
+        scenic = [
+            o["tag"] for o in output
+            if o["tag"] in SCENIC_KEYWORDS and o["score"] >= min_conf
         ]
-
-        # 返回最多 top_k 个
-        return scenic_tags[:top_k]
+        return scenic[:top_k]
